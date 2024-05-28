@@ -10,7 +10,7 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 app = FastAPI()
 
 
-# post, get, put, delete
+# create adaccount
 @app.post("/adaccount/{adaccount_id}")
 async def create_account(adacount_id: int, content: str):
     db = SessionLocal()
@@ -21,6 +21,7 @@ async def create_account(adacount_id: int, content: str):
     return db_adset
 
 
+# create campaign for any adaccount
 @app.post("/adaccount/{adaccount_id}/campaign/{campaign_id}/")
 async def create_campaign(
     adacount_id: int,
@@ -38,6 +39,7 @@ async def create_campaign(
     return db_adset
 
 
+# create adset for any campaign
 @app.post("/campaign/{campaign_id}/adsets/create/{adset_id}")
 async def create_adset(
     adset_id: int,
@@ -55,6 +57,7 @@ async def create_adset(
     return db_adset
 
 
+# create groups for any adacount
 @app.post("/{account_id}/groups/create/")
 async def create_group(group_id: int, account_id: int, content: str, name: str):
     db = SessionLocal()
@@ -65,6 +68,7 @@ async def create_group(group_id: int, account_id: int, content: str, name: str):
     return db_group
 
 
+# add an adset to a group
 @app.post("/groups-adset/")
 async def link_group_adset(adset_id: int, group_id: int):
     db = SessionLocal()
@@ -77,6 +81,7 @@ async def link_group_adset(adset_id: int, group_id: int):
     return db_group, adset
 
 
+# read all adsets
 @app.get("/adsets/")
 async def read_all_adsets():
     db = SessionLocal()
@@ -84,6 +89,7 @@ async def read_all_adsets():
     return adsets
 
 
+# read all adsets belonging to a campaign
 @app.get("/campaign/{campaign_id}/adsets")
 async def adsets_of_campaign(campaign_id: int):
     db = SessionLocal()
@@ -91,8 +97,9 @@ async def adsets_of_campaign(campaign_id: int):
     return adsets
 
 
+# read all adsets belonging to a group
 @app.get("/groups/{group_id}/adsets")
-async def adsets_of_campaign(group_id: int):
+async def adsets_of_group(group_id: int):
     db = SessionLocal()
     adsets = db.query(group_adset).filter(group_adset.c.groupId == group_id).all()
     adset_list = []
@@ -101,6 +108,8 @@ async def adsets_of_campaign(group_id: int):
         adset_list.append(row[0])
     return adset_list
 
+
+# update campaign of an adset
 @app.put("/update-adset-campaign")
 async def update_adset_campaign(adset_id: int, campaign_id: int):
     db = SessionLocal()
@@ -109,11 +118,12 @@ async def update_adset_campaign(adset_id: int, campaign_id: int):
     db.commit()
     return adset
 
+
+# delete an adset
 @app.delete("/delete-adset")
 async def delete_adset(adset_id: int):
     db = SessionLocal()
     adset = db.query(Adset).filter(Adset.id == adset_id).first()
     db.delete(adset)
     db.commit()
-    return {"message" : "{adset_id} deleted successfully"}
-    
+    return {"message": "{adset_id} deleted successfully"}
