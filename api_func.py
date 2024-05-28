@@ -1,26 +1,20 @@
 from sqlalchemy import create_engine
-from sqlalchemy.engine import URL
-
-# from sqlalchemy.orm import declarative_base
 from sqlalchemy.orm import sessionmaker
-from addentask.database import Base, Adset, Campaign, AdAccount, Groupie
+from database import Base, Adset, Campaign, AdAccount, Groupie, group_adset
 from fastapi import FastAPI
 
 url = "postgresql://postgres:tester@localhost/adden"
-
 engine = create_engine(url)
-
 Base.metadata.create_all(engine)
-# engine = create_engine('postgresql + psycopg2://user:password\@hostname/database_name')
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 app = FastAPI()
 
 
 # post, get, put, delete
 @app.post("/adaccount/{adaccount_id}")
-async def create_account(adacount_id: int, content: str, budget: int):
+async def create_account(adacount_id: int, content: str):
     db = SessionLocal()
-    db_adset = AdAccount(id=adacount_id, content=content, budget=budget)
+    db_adset = AdAccount(id=adacount_id, content=content)
     db.add(db_adset)
     db.commit()
     db.refresh(db_adset)
@@ -29,7 +23,10 @@ async def create_account(adacount_id: int, content: str, budget: int):
 
 @app.post("/adaccount/{adaccount_id}/campaign/{campaign_id}/")
 async def create_campaign(
-    adacount_id: int, content: str, budget: int, campaign_id: int
+    adacount_id: int,
+    content: str,
+    budget: int,
+    campaign_id: int,
 ):
     db = SessionLocal()
     db_adset = Campaign(
@@ -58,15 +55,10 @@ async def create_adset(
     return db_adset
 
 
-@app.post("{account_id}/groups/create/")
-async def create_group(group_id: int, account_id: int):
+@app.post("/{account_id}/groups/create/")
+async def create_group(group_id: int, account_id: int, content: str, name: str):
     db = SessionLocal()
-    db_group = Groupie(id=group_id, account_id = account_id)
-    # add_adset = db.query(Adset).filter(Adset.id.in_(adset_ids)).all()
-    # print(add_adset)
-    # db_group.extend(add_adset)
-    # adset = db.query(Adset).filter(Adset.id == adset_ids)
-    # db_group.adsets.append(adset)
+    db_group = Groupie(id=group_id, account_id=account_id, content=content, name=name)
     db.add(db_group)
     db.commit()
     db.refresh(db_group)
@@ -76,14 +68,10 @@ async def create_group(group_id: int, account_id: int):
 @app.post("/groups-adset/")
 async def link_group_adset(adset_id: int, group_id: int):
     db = SessionLocal()
-
-    # add_adset = db.query(Adset).filter(Adset.id.in_(adset_ids)).all()
-    # print(add_adset)
-    # db_group.extend(add_adset)
-    # db.add(db_group)
     db_group = db.query(Groupie).filter(Groupie.id == group_id).first()
     adset = db.query(Adset).filter(Adset.id == adset_id).first()
     db_group.adsets.append(adset)
+
     db.commit()
     db.refresh(db_group)
     return db_group, adset
@@ -101,3 +89,31 @@ async def adsets_of_campaign(campaign_id: int):
     db = SessionLocal()
     adsets = db.query(Adset).filter(Adset.campaign_id == campaign_id).all()
     return adsets
+
+
+@app.get("/groups/{group_id}/adsets")
+async def adsets_of_campaign(group_id: int):
+    db = SessionLocal()
+    adsets = db.query(group_adset).filter(group_adset.c.groupId == group_id).all()
+    adset_list = []
+    print(adsets)
+    for row in adsets:
+        adset_list.append(row[0])
+    return adset_list
+
+@app.put("/update-adset-campaign")
+async def update_adset_campaign(adset_id: int, campaign_id: int):
+    db = SessionLocal()
+    adset = db.query(Adset).filter(Adset.id == adset_id).first()
+    adset.campaign_id = campaign_id
+    db.commit()
+    return adset
+
+@app.delete("/delete-adset")
+async def delete_adset(adset_id: int):
+    db = SessionLocal()
+    adset = db.query(Adset).filter(Adset.id == adset_id).first()
+    db.delete(adset)
+    db.commit()
+    return {"message" : "{adset_id} deleted successfully"}
+    
